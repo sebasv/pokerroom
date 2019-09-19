@@ -2,75 +2,199 @@ extern crate rand;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
+/*  TODO
+* test scoring rules
+* test other rules
+* bla
+**/
+
+#[derive(Clone, Copy)]
+struct DumbCallback {
+
+}
+
+impl ActionCallback for DumbCallback {
+    fn callback(&self, message: Message) -> Message {
+
+    // Flop(Card,Card,Card),
+    // River(Card),
+    // Turn(Card),
+    // Showdown{score: Score, pot: Money, players: Vec<usize>},
+    // Player{id: usize, action: PlayerAction},
+    // RequestAction(usize),
+    // Error(ErrorMessage),
+    // Ack,
+        match message {
+            Message::RequestAction(id) => Message::Player{id, action: PlayerAction::Call},
+            other => {
+                println!("{:?}", other);
+                Message::Ack
+            }
+        }
+    }
+}
+
 fn main() {
     println!("Hello, world!");
+    let callback = DumbCallback{};
+    let mut table = Table::new(GameType::NoLimit, 1, vec![100,100,100], callback);
+    table.play_n_rounds(1000);
 }
 
-pub struct Table {
+pub struct Table<T>
+where T: ActionCallback {
     game_type: GameType,
-    n_players: usize,
-    blind: Bet,
+    blind: Money,
     dealer: usize,
-    holes: Vec<Option<(Card, Card)>>,
-    table_cards: Vec<Card>,
-    deck: Deck,
-    stacks: Vec<Bet>,
-    pot: Bet,
+    players: Vec<Player>,
+    callback: T
 }
 
-impl Table {
-    pub fn new(game_type: GameType, blind: Bet, stacks: Vec<Bet>) -> Table {
+/// the game-manager. players register by creating a new table, which then
+/// automatically plays rounds until only one player is left. 
+impl<T> Table<T>
+where T: ActionCallback+Copy {
+    pub fn new(game_type: GameType, blind: Money, players: Vec<Money>, callback: T) -> Table<T> {
+        let players = players.iter().map(|stack| {
+            Player::new(*stack)
+        }).collect();
         Table {
             game_type,
-            n_players: stacks.len(),
             blind,
             dealer: 0,
-            pot: NOBET,
-            holes: Vec::with_capacity(stacks.len()),
-            table_cards: Vec::with_capacity(5),
-            deck: Deck::new(),
-            stacks,
+            players,
+            callback,
+        }
+    }
+
+    pub fn play_until_end(&mut self) {
+        while self.players.iter().filter(|p|p.active()).count() > 1 {
+            self.play_round();
+        }
+    }
+
+    pub fn play_n_rounds(&mut self, n: usize) {
+        for _ in 0..n {
+            self.play_round();
         }
     }
 
     pub fn play_round(&mut self) {
-        self.deck = Deck::new();
-        self.table_cards.clear();
-        self.pot = NOBET;
-        self.holes = (0..self.n_players)
-            .map(|_| Some((self.deck.draw(), self.deck.draw())))
-            .collect();
-        self.dealer = (self.dealer + 1) % self.n_players;
-        // TODO pre-flop betting
-        for _ in 0..3 {
-            self.table_cards.push(self.deck.draw());
+        let mut deck = Deck::new();
+        let mut pot = ZERO_MONEY;
+        let mut table_cards = Vec::new();
+        let n = self.players.len();
+
+        for (i, player) in &mut self.players.iter_mut().enumerate() {
+            match (i + n - self.dealer) % n {
+                1 if player.active() => player.call(self.blind),
+                2 if player.active() => player.call(self.blind * 2),
+                _ => {},
+            } 
+            player.hole_cards = if player.active() {
+                let cards = (deck.draw(), deck.draw());
+                self.callback.callback(Message::Hole(i, cards.0, cards.1));
+                 Some(cards)
+            } else {
+                None
+            }
         }
-        // TODO flop betting
-        self.table_cards.push(self.deck.draw());
-        // TODO river betting
-        self.table_cards.push(self.deck.draw());
-        // TODO turn betting
-        // TODO showdown
-        self.showdown()
+        // pre-flop 
+        pot += self.betting_round((self.dealer+3)%n);
+        for _ in 0..3 {
+            table_cards.push(deck.draw());
+        }
+        self.callback.callback(Message::Flop(table_cards[0], table_cards[1], table_cards[2]));
+
+        //  river
+        pot += self.betting_round(self.dealer+1);
+        table_cards.push(deck.draw());
+        self.callback.callback(Message::River(table_cards[3]));
+
+        //  turn 
+        pot += self.betting_round(self.dealer+1);
+        table_cards.push(deck.draw());
+        self.callback.callback(Message::Turn(table_cards[4]));
+
+        // showdown
+        pot += self.betting_round(self.dealer+1);
+        let (splitters, score) = self.showdown(&table_cards);
+
+        //  divide pot over winners
+        let share = pot / splitters.len() as Money;
+        for splitter in &splitters {
+            self.players[*splitter].stack += share;
+        }
+        self.callback.callback(Message::Showdown{score, pot, players: splitters});
+        self.dealer = (self.dealer + 1) % self.players.len();
+        println!("{:?}", self.players.iter().map(|p| p.stack).collect::<Vec<Money>>());
     }
 
-    fn showdown(&mut self) {
-        if self.holes.len() == 1 {
-            // TODO winner by default
+    fn betting_round(&mut self, first_player: usize) -> Money {
+        let n = self.players.len();
+        let mut max_bet = self.players.iter().map(|p| p.bet).max().unwrap();
+        let mut min_betsize = self.blind*2;
+        for i in (0..self.players.len()).map(|i| (i+first_player) % n) {
+            if self.players[i].can_bet(max_bet) {
+                self.bet(i, max_bet, min_betsize);
+                min_betsize = min_betsize.max(self.players[i].bet - max_bet);
+                max_bet = max_bet.max(self.players[i].bet);
+            }
         }
+
+        // continue until everyone equal, all-in or folded
+        let mut old_max_bet = ZERO_MONEY;
+
+        while old_max_bet < max_bet {
+            old_max_bet = max_bet;
+            for i in (0..self.players.len()).map(|i| (i+first_player) % n) {
+                if self.players[i].can_bet(max_bet) {
+                    self.bet(i, max_bet, min_betsize);
+                    min_betsize = min_betsize.max(self.players[i].bet - max_bet);
+                    max_bet = max_bet.max(self.players[i].bet);
+                }
+            }
+        }
+
+        self.players.iter_mut().map(|p| p.yield_bet()).sum::<Money>()
+    }
+
+    fn bet(&mut self, player_index: usize, max_bet: Money, min_betsize: Money) {
+        match self.callback.callback(Message::RequestAction(player_index)) {
+            Message::Player{action: PlayerAction::Fold, ..} => {
+                self.players[player_index].fold();
+            },
+            Message::Player{action: PlayerAction::Call, ..} => {
+                self.players[player_index].call(max_bet);
+            },
+            Message::Player{action: PlayerAction::Raise(new_bet), ..} => {
+                if new_bet - max_bet < min_betsize || self.players[player_index].raise(new_bet).is_err() {
+                    self.callback.callback(Message::Error(ErrorMessage::BetNotAllowed));
+                    self.bet(player_index, max_bet, min_betsize);
+                }
+            },
+            _ => {
+                self.callback.callback(Message::Error(ErrorMessage::InvalidResponse));
+                self.bet(player_index, max_bet, min_betsize);
+            },
+        }
+
+    }
+
+    fn showdown(&self, table_cards: &[Card]) -> (Vec<usize>, Score) {
         let scores = self
-            .holes
+            .players
             .iter()
-            .map(|o| match o {
+            .map(|p| match p.hole_cards {
                 None => Score::folded(),
                 Some((c1, c2)) => Score::calculate(vec![
-                    *c1,
-                    *c2,
-                    self.table_cards[0],
-                    self.table_cards[1],
-                    self.table_cards[2],
-                    self.table_cards[3],
-                    self.table_cards[4],
+                    c1,
+                    c2,
+                    table_cards[0],
+                    table_cards[1],
+                    table_cards[2],
+                    table_cards[3],
+                    table_cards[4],
                 ]),
             })
             .collect::<Vec<Score>>();
@@ -79,13 +203,99 @@ impl Table {
             scores
                 .iter()
                 .enumerate()
-                .filter_map(|(i, s)| if s == max_score { Some(i) } else { None });
-        // TODO pot is split amongst splitters
+                .filter_map(|(i, s)| if s == max_score { Some(i) } else { None }).collect();
+
+        (splitters, *max_score)
     }
 }
 
-#[derive(Ord, Eq, PartialEq, PartialOrd, Default, Clone)]
-struct Score {
+#[derive(Debug)]
+pub enum Message {
+    Hole(usize, Card, Card),
+    Flop(Card, Card, Card),
+    River(Card),
+    Turn(Card),
+    Showdown{score: Score, pot: Money, players: Vec<usize>},
+    Player{id: usize, action: PlayerAction},
+    RequestAction(usize),
+    Error(ErrorMessage),
+    Ack,
+}
+
+#[derive(Debug)]
+pub enum ErrorMessage {
+    InvalidResponse,
+    BetNotAllowed,
+}
+
+pub trait ActionCallback{
+    fn callback(&self, message: Message) -> Message;
+}
+
+#[derive(Debug)]
+pub enum PlayerAction {
+    Fold,
+    Call,
+    Raise(Money)
+}
+
+struct Player {
+    hole_cards: Option<(Card, Card)>,
+    stack: Money,
+    bet: Money,
+}
+
+impl Player {
+    fn new(stack: Money) -> Player {
+        Player {
+            stack,
+            bet: ZERO_MONEY,
+            hole_cards: None,
+        }
+    }
+
+    fn can_bet(&self, bet: Money) -> bool {
+        self.stack + self.bet >= bet && self.hole_cards.is_some()
+    }
+
+    fn active(&self) -> bool {
+        self.stack > ZERO_MONEY || self.bet > ZERO_MONEY
+    }
+
+    fn raise(&mut self, bet: Money) -> Result<(),()> {
+        if bet <= self.stack {
+            self.stack -= bet;
+            self.bet += bet;
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
+    /// if calling on more than you have, you are all in
+    fn call(&mut self, bet: Money)  {
+        if self.stack + self.bet > bet {
+            self.stack -= bet - self.bet;
+            self.bet = bet;
+        } else {
+            self.stack = ZERO_MONEY;
+            self.bet = bet;
+        }
+    }
+
+    fn fold(&mut self) {
+        self.hole_cards = None;
+    }
+
+    fn yield_bet(&mut self) -> Money {
+        let bet = self.bet;
+        self.bet = ZERO_MONEY;
+        bet
+    }
+}
+
+#[derive(Ord, Eq, PartialEq, PartialOrd, Default, Clone, Copy, Debug)]
+pub struct Score {
     royal_flush: bool,
     // highest straight flush.
     straight_flush: u8,
@@ -165,12 +375,14 @@ impl Score {
                 return score;
             }
         }
+
         for i in 0..2 {
-            if ranks[i] - ranks[i + 4] == 5 {
+            if ranks.iter().enumerate().all(|(j, r)| *r + j as u8 == ranks[0]) {
                 score.straight = ranks[i];
                 return score;
             }
         }
+
         for i in 0..4 {
             if ranks[i] == ranks[i + 2] {
                 score.three_of_a_kind = ranks[i];
@@ -196,90 +408,14 @@ impl Score {
 }
 
 type Card = u8;
-type Bet = u32;
-const NOBET: u32 = 0u32;
-
-// pub struct Game<T: PlayerAction> {
-//     game_type: GameType,
-//     blind: Bet,
-//     players: Vec<Player<T>>,
-//     game_state: GameState,
-//     deck: Deck,
-//     current_player: usize,
-// }
-
-// impl<T> Game<T>
-// where T: PlayerAction+ Copy{
-//     pub fn new(game_type: GameType, blind: Bet, actions: Vec<T>, dealer: usize)  -> Game<T> {
-//         debug_assert!(actions.len()*2+3<=52); // TODO check this in api
-
-//         let mut deck = Deck::new();
-//         let players = actions.iter().enumerate()
-//             .map(|(i, &action)| match i-dealer {
-//                 1 => Player::new((deck.draw(), deck.draw()), blind, action),
-//                 2 => Player::new((deck.draw(), deck.draw()), 2*blind, action),
-//                 _ => Player::new((deck.draw(), deck.draw()), 0, action),
-//             })
-//             .collect::<Vec<Player<T>>>();
-//         Game {
-//             game_type,
-//             blind,
-//             game_state: GameState::PreFlop,
-//             deck,
-//             current_player: (dealer + 2) % players.len(),
-//             players,
-//         }
-//     }
-
-//     pub fn next(&mut self) {
-//         match self.game_state {
-//             GameState::PreFlop => {},
-//             _ => {},
-//         };
-//     }
-// }
+type Money = u32;
+const ZERO_MONEY: u32 = 0u32;
 
 pub enum GameType {
     NoLimit,
     FixedLimit,
     PotLimit,
 }
-
-// pub trait PlayerAction {
-//     fn act<T: PlayerAction>(player: &Player<T>) -> Action;
-// }
-
-// pub enum Action {
-//     Fold,
-//     Call,
-//     Raise(Bet),
-// }
-
-// struct Player<T: PlayerAction> {
-//     hand: Option<(Card, Card)>,
-//     bet: Bet,
-//     action: T,
-//     stock: Bet,
-// }
-
-// impl<T> Player<T>
-// where
-//     T: PlayerAction,
-// {
-//     fn new(action: T, stock: Bet) -> Player<T> {
-//         Player {
-//             hand: None,
-//             bet: NoBet,
-//             action,
-//             stock,
-//         }
-//     }
-
-//     fn deal(&mut self, hand: (Card, Card), blind: Bet) {
-//         self.hand = Some(hand);
-//         self.bet = blind;
-//     }
-// }
 
 struct Deck {
     cards: Vec<Card>,
