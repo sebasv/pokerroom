@@ -48,7 +48,7 @@ where T: ActionCallback {
 /// the game-manager. players register by creating a new table, which then
 /// automatically plays rounds until only one player is left. 
 impl<T> Table<T>
-where T: ActionCallback+Copy {
+where T: ActionCallback {
     pub fn new(game_type: GameType, blind: Money, players: Vec<Money>, callback: T) -> Table<T> {
         let players = players.iter().map(|stack| {
             Player::new(*stack)
@@ -66,12 +66,14 @@ where T: ActionCallback+Copy {
         while self.players.iter().filter(|p|p.active()).count() > 1 {
             self.play_round();
         }
+        self.callback.callback(Message::GameOver);
     }
 
     pub fn play_n_rounds(&mut self, n: usize) {
         for _ in 0..n {
             self.play_round();
         }
+        self.callback.callback(Message::GameOver);
     }
 
     pub fn play_round(&mut self) {
@@ -215,6 +217,7 @@ pub enum Message {
     RequestAction(usize),
     Error(ErrorMessage),
     Ack,
+    GameOver,
 }
 
 #[derive(Debug)]
@@ -224,7 +227,7 @@ pub enum ErrorMessage {
 }
 
 pub trait ActionCallback{
-    fn callback(&self, message: Message) -> Message;
+    fn callback(&mut self, message: Message) -> Message;
 }
 
 #[derive(Debug)]
@@ -290,7 +293,7 @@ impl Score {
             }
         }
 
-        let mut ranks = {
+        let ranks = {
             let mut vec = cards.iter().map(|card| card.rank).collect::<Vec<u8>>();
             vec.sort();
             vec.reverse();
