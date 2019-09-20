@@ -6,3 +6,5 @@ edition = "2018"
 
 [dependencies]
 rand = "*"
+num-derive = "*"
+num-traits = "*"
