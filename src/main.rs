@@ -1,9 +1,11 @@
 mod api;
 mod engine;
+mod communication;
 
 use std::thread;
 use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
+
 /*  TODO
 * test other rules
 * docs
@@ -12,61 +14,34 @@ use websocket::{Message, OwnedMessage};
 const CONNECTION: &str = "ws://127.0.0.1:2794";
 
 fn main() {
-    engine_test();
-    api_test();
-}
-
-fn engine_test() {
-    #[derive(Clone, Copy)]
-    struct DumbCallback {}
-
-    impl engine::ActionCallback for DumbCallback {
-        fn callback(&mut self, message: engine::Message) -> engine::Message {
-            // Flop(Card,Card,Card),
-            // River(Card),
-            // Turn(Card),
-            // Showdown{score: Score, pot: Money, players: Vec<usize>},
-            // Player{id: usize, action: PlayerAction},
-            // RequestAction(usize),
-            // Error(ErrorMessage),
-            // Ack,
-            match message {
-                engine::Message::RequestAction(id) => engine::Message::Player {
-                    id,
-                    action: engine::PlayerAction::Call,
-                },
-                other => {
-                    println!("{:?}", other);
-                    engine::Message::Ack
-                }
-            }
-        }
-    }
-
-    let callback = DumbCallback {};
-    let mut table = engine::Table::new(engine::GameType::NoLimit, 1, vec![100, 100, 100], callback);
-    table.play_until_end();
-}
-
-fn api_test() {
+    let n_players = 1;
     let server = thread::spawn(move || {
-        api::run_server("127.0.0.1:2794", 6);
+        api::run_server("127.0.0.1:2794", n_players);
     });
 
-    for _ in 0..6 {
+    for _ in 0..n_players {
         thread::spawn(move || {
             let mut client = ClientBuilder::new(CONNECTION)
                 .unwrap()
                 .add_protocol("rust-websocket")
                 .connect_insecure()
                 .unwrap();
-            loop {
-                match client.recv_message() {
-                    Ok(OwnedMessage::Text(ref s)) if s == "?action" => {
-                        client.send_message(&Message::text("call"));
-                    }
-                    Ok(OwnedMessage::Text(ref s)) => {
-                        println!("{}", s);
+            let mut count = 0;
+            while let Ok(msg) = client.recv_message() {
+                match msg {
+                    OwnedMessage::Text(t) => {
+                        println!("{:?}", t);
+                        if let Ok(communication::Message::RequestAction { .. }) =
+                            serde_json::from_str::<communication::Message>(&t)
+                        {
+                            let serialized = serde_json::to_string(&communication::Response::Action(
+                                communication::PlayerAction::Raise(2),
+                            ))
+                            .unwrap();
+                            println!("{:?}", serialized);
+                            let msg = Message::text(serialized);
+                            client.send_message(&msg);
+                        }
                     }
                     _ => break,
                 }
