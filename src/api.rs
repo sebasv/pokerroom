@@ -1,10 +1,10 @@
 use std::thread;
-use websocket::{OwnedMessage, Message as WsMessage};
-use websocket::sync::{Server, Client, Stream};
+use websocket::sync::{Client, Server, Stream};
+use websocket::{Message as WsMessage, OwnedMessage};
 
-use crate::engine::{GameType, ActionCallback, PlayerAction, Message, ErrorMessage, Table};
+use crate::engine::{ActionCallback, ErrorMessage, GameType, Message, PlayerAction, Table};
 
-/* TODO 
+/* TODO
 * ERROR HANDLING
 * communicate all relevant updates to players
 * make game-mode selectable
@@ -35,15 +35,19 @@ pub fn run_server(address: &str, n_players: usize) {
     }
 }
 
-/// The protocol for DumbCallback is simple:
+/// The protocol for DumbCallback is:
 /// clients listen. If they read "?action" they respond with their preferred action, which is {"fold", "call", n} where n is the number of chips they want to raise.
 struct DumbCallback<S>
-where S: Stream {
+where
+    S: Stream,
+{
     clients: Vec<Client<S>>,
 }
 
 impl<S> DumbCallback<S>
-where S: Stream {
+where
+    S: Stream,
+{
     fn close_connections(&mut self) {
         for client in &mut self.clients {
             client.send_message(&OwnedMessage::Close(None));
@@ -51,35 +55,48 @@ where S: Stream {
     }
 }
 
-impl<S> ActionCallback for DumbCallback<S> 
-where S: Stream {
+impl<S> ActionCallback for DumbCallback<S>
+where
+    S: Stream,
+{
     fn callback(&mut self, message: Message) -> Message {
-
-    // Flop(Card,Card,Card),
-    // River(Card),
-    // Turn(Card),
-    // Showdown{score: Score, pot: Money, players: Vec<usize>},
-    // Player{id: usize, action: PlayerAction},
-    // RequestAction(usize),
-    // Error(ErrorMessage),
-    // Ack,
+        // Flop(Card,Card,Card),
+        // River(Card),
+        // Turn(Card),
+        // Showdown{score: Score, pot: Money, players: Vec<usize>},
+        // Player{id: usize, action: PlayerAction},
+        // RequestAction(usize),
+        // Error(ErrorMessage),
+        // Ack,
         match message {
             Message::RequestAction(id) => {
                 self.clients[id].send_message(&WsMessage::text("?action"));
                 match self.clients[id].recv_message() {
-                    Ok(OwnedMessage::Text(ref s)) if s == "fold" => {Message::Player{id, action: PlayerAction::Fold}},
-                    Ok(OwnedMessage::Text(ref s)) if s == "call" => {Message::Player{id, action: PlayerAction::Call}},
+                    Ok(OwnedMessage::Text(ref s)) if s == "fold" => Message::Player {
+                        id,
+                        action: PlayerAction::Fold,
+                    },
+                    Ok(OwnedMessage::Text(ref s)) if s == "call" => Message::Player {
+                        id,
+                        action: PlayerAction::Call,
+                    },
                     Ok(OwnedMessage::Text(s)) => {
                         if let Ok(bet) = s.parse() {
-                            Message::Player{id, action: PlayerAction::Raise(bet)}
+                            Message::Player {
+                                id,
+                                action: PlayerAction::Raise(bet),
+                            }
                         } else {
                             Message::Error(ErrorMessage::InvalidResponse)
                         }
-                        },
-                    _ => {Message::Error(ErrorMessage::InvalidResponse)},
+                    }
+                    _ => Message::Error(ErrorMessage::InvalidResponse),
                 }
-            },
-            Message::GameOver => {self.close_connections(); Message::Ack},
+            }
+            Message::GameOver => {
+                self.close_connections();
+                Message::Ack
+            }
             other => {
                 println!("{:?}", other);
                 Message::Ack
@@ -88,10 +105,12 @@ where S: Stream {
     }
 }
 
-fn play_game<S>(clients: Vec<Client<S>>) 
-where S: Stream {
+fn play_game<S>(clients: Vec<Client<S>>)
+where
+    S: Stream,
+{
     let n = clients.len();
-    let callback = DumbCallback{clients};
+    let callback = DumbCallback { clients };
     let mut table = Table::new(GameType::NoLimit, 1, vec![100; n], callback);
 
     // table.play_until_end();
