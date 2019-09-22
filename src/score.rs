@@ -1,4 +1,4 @@
-use super::{Card, Suit};
+use crate::communication::{Card, Suit};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

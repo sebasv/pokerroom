@@ -2,11 +2,10 @@ use num_traits::FromPrimitive;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 
-pub mod score;
 use crate::communication::{
     Callback, Card, Error, ErrorMessage, GameType, Message, Money, PlayerAction, Response, Suit,
 };
-use score::Score;
+use crate::score::Score;
 
 /*  TODO
 * test other rules
@@ -66,29 +65,6 @@ where
                 break;
             }
         }
-    }
-
-    /// Play rounds until only one player has a stack of chips left.
-    /// Consumes self, so all resources are freed after the game finishes.
-    pub fn play_until_end(mut self) {
-        while self.players.iter().filter(|p| p.active()).count() > 1 {
-            if let Err(e) = self.play_round() {
-                self.callback.callback(Message::Error(e)).ok();
-                break;
-            }
-        }
-        self.callback.callback(Message::GameOver).ok();
-    }
-
-    /// Play n rounds.
-    pub fn play_n_rounds(&mut self, n: usize) {
-        for _ in 0..n {
-            if let Err(e) = self.play_round() {
-                self.callback.callback(Message::Error(e)).ok();
-                break;
-            }
-        }
-        self.callback.callback(Message::GameOver).ok();
     }
 
     /// Play a single round.

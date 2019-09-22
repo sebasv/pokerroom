@@ -1,4 +1,4 @@
-use crate::engine::score::Score;
+use crate::score::Score;
 use num_derive::FromPrimitive;
 use serde::{Deserialize, Serialize};
 
