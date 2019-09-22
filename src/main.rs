@@ -15,7 +15,7 @@ const CONNECTION: &str = "ws://127.0.0.1:2794";
 fn main() -> Result<(), ()> {
     let n_players = 1;
     let server = thread::spawn(move || {
-        api::run_server("127.0.0.1:2794", n_players);
+        api::run_server("127.0.0.1:2794");
     });
 
     for _ in 0..n_players {

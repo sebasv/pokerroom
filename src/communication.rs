@@ -4,6 +4,22 @@ use serde::{Deserialize, Serialize};
 
 pub type Money = u32;
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+pub enum RequestTable {
+    RequestTable,
+    Table(TableRequest),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+pub struct TableRequest {
+    pub n_players: usize,
+    pub small_blind: Money,
+    pub big_blind: Money,
+    pub stack: Money,
+    pub game_type: GameType,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum GameType {
     NoLimit,
     FixedLimit,

@@ -10,6 +10,7 @@ use score::Score;
 
 /*  TODO
 * test other rules
+* implement other game types
 **/
 
 /// chips are discrete, so money should be as well
@@ -51,8 +52,24 @@ where
         }
     }
 
+    /// Play indefinitely. Only break on errors
+    pub fn play(mut self) {
+        let players = self.players.clone();
+        loop {
+            if self.players.iter().filter(|p| p.active()).count() == 1 {
+                self.callback.callback(Message::GameOver).ok();
+                self.players = players.clone();
+            }
+            if let Err(e) = self.play_round() {
+                self.callback.callback(Message::Error(e)).ok();
+                break;
+            }
+        }
+    }
+
     /// Play rounds until only one player has a stack of chips left.
-    pub fn play_until_end(&mut self) {
+    /// Consumes self, so all resources are freed after the game finishes.
+    pub fn play_until_end(mut self) {
         while self.players.iter().filter(|p| p.active()).count() > 1 {
             if let Err(e) = self.play_round() {
                 self.callback.callback(Message::Error(e)).ok();
@@ -245,6 +262,7 @@ where
 }
 
 /// Struct to manage the state of a player
+#[derive(Clone)]
 struct Player {
     hole_cards: Option<(Card, Card)>,
     stack: Money,

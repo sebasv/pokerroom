@@ -3,8 +3,11 @@ use std::thread;
 use websocket::sync::{Client, Server, Stream};
 use websocket::{Message as WsMessage, OwnedMessage};
 
-use crate::communication::{Callback, Error, ErrorMessage, GameType, Message, Response};
+use crate::communication::{
+    Callback, Error, ErrorMessage, Message, RequestTable, Response, TableRequest,
+};
 use crate::engine::Table;
+use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 
 /* TODO
@@ -17,7 +20,7 @@ use std::sync::mpsc::{channel, Sender};
 /// once enough players have been collected, starts a new game in a separate
 /// thread. Each game sends all clients back to the main thread at the end of
 /// the game.
-pub fn run_server(address: &str, n_players: usize) {
+pub fn run_server(address: &str) {
     let server = Server::bind(address).unwrap();
     let (tx, rx) = channel();
 
@@ -25,48 +28,77 @@ pub fn run_server(address: &str, n_players: usize) {
     let tx2 = tx.clone();
     thread::spawn(move || {
         for connection in server.filter_map(Result::ok) {
-            if let Ok(client) = connection.accept() {
-                tx2.send(client).ok();
+            if let Ok(mut client) = connection.accept() {
+                let tx3 = tx2.clone();
+                // fire up separate thread just for requesting the table type
+                // to prevent blocking the server or the dispatcher.
+                // Optimal: no. Works: yes.
+                thread::spawn(move || {
+                    if client
+                        .send_message(&WsMessage::text(
+                            serde_json::to_string(&RequestTable::RequestTable).unwrap(),
+                        ))
+                        .is_ok()
+                    {
+                        if let Ok(OwnedMessage::Text(msg)) = client.recv_message() {
+                            if let Ok(RequestTable::Table(request)) =
+                                serde_json::from_str::<RequestTable>(&msg)
+                            {
+                                tx3.send((request, client)).ok();
+                            }
+                        }
+                    }
+                });
             }
         }
     });
 
-    // listen to clients from server and from finished games
-    let mut clients = Vec::new();
-    while let Ok(client) = rx.recv() {
-        // queue clients until n_players reached
-        clients.push(client);
-        if clients.len() == n_players {
-            // play game with n_players. if
+    // listen to clients from server and from stopped games
+    let mut queue = HashMap::new();
+    while let Ok((table, client)) = rx.recv() {
+        let q = queue.entry(table).or_insert_with(Vec::new);
+        q.push(client);
+        if q.len() == table.n_players {
+            // play game with n_players.
             let tx3 = tx.clone();
-            let mut temp = Vec::new();
-            for _ in 0..n_players {
-                temp.push(clients.pop().unwrap());
+            let mut clients = Vec::new();
+            for _ in 0..table.n_players {
+                clients.push(q.pop().unwrap());
             }
             thread::spawn(move || {
-                play_game(temp, tx3);
+                do_game(table, clients, tx3);
             });
         }
     }
 }
 
-/// play the actual game. This is all the purely sequential logic of playing a
-/// game, to keep the threading code as clean as possible.
-fn play_game<S>(mut clients: Vec<Client<S>>, tx: Sender<Client<S>>)
-where
+/// Single-game-type logic. Create a table and keep playing until one of the
+/// players generates an error. Kick that player and return the other players
+/// to the queue.
+fn do_game<S>(
+    // game_type: GameType,
+    // small_blind: Money,
+    // big_blind: Money,
+    // stack: Money,
+    table_request: TableRequest,
+    mut clients: Vec<Client<S>>,
+    tx3: Sender<(TableRequest, Client<S>)>,
+) where
     S: Stream + Send + 'static,
 {
-    {
-        let n = clients.len();
-        let callback = Adapter {
+    Table::new(
+        table_request.game_type,
+        table_request.small_blind,
+        table_request.big_blind,
+        vec![table_request.stack; clients.len()],
+        Adapter {
             clients: &mut clients,
-        };
-        let mut table = Table::new(GameType::NoLimit, 1, 2, vec![100; n], callback);
-        // table.play_until_end();
-        table.play_n_rounds(2);
-    }
+        },
+    )
+    .play();
+    // one of the players got kicked for erroring, return other players
     while let Some(client) = clients.pop() {
-        tx.send(client).ok();
+        tx3.send((table_request, client)).ok();
     }
 }
 
