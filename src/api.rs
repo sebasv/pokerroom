@@ -1,5 +1,4 @@
 use std::thread;
-// use serde_json::json;
 use websocket::sync::{Client, Server, Stream};
 use websocket::{Message as WsMessage, OwnedMessage};
 
@@ -11,8 +10,6 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 
 /* TODO
-* make game-mode selectable
-* make table size selectable
 * switch to async websockets for speed
 **/
 

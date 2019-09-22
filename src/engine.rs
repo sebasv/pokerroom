@@ -10,7 +10,6 @@ use crate::score::Score;
 /*  TODO
 * test other rules
 * implement other game types
-* if your bet == max bet you don't get to raise
 **/
 
 /// chips are discrete, so money should be as well
@@ -149,7 +148,7 @@ where
         while previous_bet < current_bet {
             previous_bet = current_bet;
             for i in (0..self.players.len()).map(|i| (i + first_player) % n) {
-                if self.players[i].can_bet() {
+                if self.players[i].can_bet() && self.players[i].bet != current_bet {
                     let raise = self.bet(i, current_bet, min_betsize, pot)?;
                     min_betsize = min_betsize.max(raise);
                     current_bet += raise;
