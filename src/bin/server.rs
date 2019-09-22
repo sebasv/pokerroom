@@ -30,7 +30,7 @@ fn main() -> Result<(), ()> {
     let loc = String::from(address) + ":" + port;
 
     let server = thread::spawn(move || {
-        println!("server started");
+        println!("server started on {}", loc);
         run_server(&loc);
     });
 

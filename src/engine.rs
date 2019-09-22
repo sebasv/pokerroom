@@ -346,19 +346,4 @@ turn&river only big increment
 pot-limit:
 can only double pot
 
-table properties
-*type; no-limit/pot-limit/fixed-limit
-*blind;
-*number of participants
-
-game sequence:
-* deal hole cards
-* pre-flop
-* deal flop
-* flop bet
-* deal river
-* river bet
-* deal turn
-* turn bet
-* showdown
 */
