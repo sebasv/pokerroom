@@ -10,6 +10,12 @@ pub enum GameType {
     PotLimit,
 }
 
+/// the callback that is used to communicate the game state from the engine to
+/// the api.
+pub trait Callback {
+    fn callback(&mut self, message: Message) -> Result<Response, ErrorMessage>;
+}
+
 #[derive(
     Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy, FromPrimitive, Serialize, Deserialize,
 )]
@@ -20,21 +26,27 @@ pub enum Suit {
     /*(♦)*/ Diamonds,
 }
 
-/// Cards struct represents card. It would be slightly better to replace suits with an enum.
-/// Suit has range 2-14(aces high) but when evaluating straights includes 1(aces low).
+/// Cards struct represents playing card.
+/// rank has range 2-14(aces high) but when evaluating straights includes 1(aces low).
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Card {
     pub rank: u8,
     pub suit: Suit,
 }
 
+/// Response from the callback.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Response {
+    // generic meaningless response
     Ack,
+    // describes the player's move
     Action(PlayerAction),
 }
+
+/// Message sent to the callback
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
+    // game updates that require no response
     Hole {
         player: usize,
         cards: (Card, Card),
@@ -48,25 +60,25 @@ pub enum Message {
         players: Vec<usize>,
         stacks: Vec<Money>,
     },
+    GameOver,
+    // inform player of current game state and request a PlayerAction response
     RequestAction {
-        player_id: usize,
+        player: usize,
         bets: Vec<Option<Money>>,
         pot: Money,
     },
     Error(ErrorMessage),
-    GameOver,
 }
 
+/// Everything that can go wrong and should be messaged to the players.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ErrorMessage {
     InvalidResponse,
     BetNotAllowed,
+    WebSocketError,
 }
 
-pub trait Callback {
-    fn callback(&mut self, message: Message) -> Response;
-}
-
+/// All the actions at the disposal of the player.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum PlayerAction {
     Fold,

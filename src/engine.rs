@@ -10,7 +10,7 @@ use score::Score;
 
 /*  TODO
 * test other rules
-* bla
+* make call and raise relative such that call==raise(0)
 **/
 
 /// chips are discrete, so money should be as well
@@ -44,27 +44,30 @@ where
         }
     }
 
+    /// Play rounds until only one player has a stack of chips left.
     pub fn play_until_end(&mut self) {
         while self.players.iter().filter(|p| p.active()).count() > 1 {
             if let Err(e) = self.play_round() {
-                self.callback.callback(Message::Error(e));
+                self.callback.callback(Message::Error(e)).ok();
                 break;
             }
         }
-        self.callback.callback(Message::GameOver);
+        self.callback.callback(Message::GameOver).ok();
     }
 
+    /// Play n rounds.
     pub fn play_n_rounds(&mut self, n: usize) {
         for _ in 0..n {
             if let Err(e) = self.play_round() {
-                self.callback.callback(Message::Error(e));
+                self.callback.callback(Message::Error(e)).ok();
                 break;
             }
         }
-        self.callback.callback(Message::GameOver);
+        self.callback.callback(Message::GameOver).ok();
     }
 
-    pub fn play_round(&mut self) -> Result<(), ErrorMessage> {
+    /// Play a single round.
+    fn play_round(&mut self) -> Result<(), ErrorMessage> {
         let mut deck = Deck::new();
         let mut pot = ZERO_MONEY;
         let mut table_cards = Vec::new();
@@ -78,7 +81,7 @@ where
             }
             player.hole_cards = if player.active() {
                 let cards = (deck.draw(), deck.draw());
-                self.callback.callback(Message::Hole { player: i, cards });
+                self.callback.callback(Message::Hole { player: i, cards })?;
                 Some(cards)
             } else {
                 None
@@ -93,17 +96,17 @@ where
             table_cards[0],
             table_cards[1],
             table_cards[2],
-        ));
+        ))?;
 
         //  river
         pot += self.betting_round(self.dealer + 1, pot)?;
         table_cards.push(deck.draw());
-        self.callback.callback(Message::River(table_cards[3]));
+        self.callback.callback(Message::River(table_cards[3]))?;
 
         //  turn
         pot += self.betting_round(self.dealer + 1, pot)?;
         table_cards.push(deck.draw());
-        self.callback.callback(Message::Turn(table_cards[4]));
+        self.callback.callback(Message::Turn(table_cards[4]))?;
 
         // showdown
         pot += self.betting_round(self.dealer + 1, pot)?;
@@ -119,11 +122,13 @@ where
             pot,
             players: splitters,
             stacks: self.players.iter().map(|p| p.stack).collect(),
-        });
+        })?;
         self.dealer = (self.dealer + 1) % self.players.len();
         Ok(())
     }
 
+    /// A single round of poker consists of a series of betting rounds.
+    /// These rules depend on the game type.
     fn betting_round(&mut self, first_player: usize, pot: Money) -> Result<Money, ErrorMessage> {
         let n = self.players.len();
         let mut max_bet = self.players.iter().map(|p| p.bet).max().unwrap();
@@ -157,15 +162,17 @@ where
             .sum::<Money>())
     }
 
+    /// Request a player's action, verify this action is allowed within the
+    /// rule set of the current game type, and update pot & table bets.
     fn bet(
         &mut self,
-        player_id: usize,
+        player: usize,
         max_bet: Money,
         min_betsize: Money,
         pot: Money,
     ) -> Result<(), ErrorMessage> {
         match self.callback.callback(Message::RequestAction {
-            player_id,
+            player,
             bets: self
                 .players
                 .iter()
@@ -173,27 +180,28 @@ where
                 .collect(),
             pot,
         }) {
-            Response::Action(PlayerAction::Fold) => {
-                self.players[player_id].fold();
+            Ok(Response::Action(PlayerAction::Fold)) => {
+                self.players[player].fold();
                 Ok(())
             }
-            Response::Action(PlayerAction::Call) => {
-                self.players[player_id].call(max_bet);
+            Ok(Response::Action(PlayerAction::Call)) => {
+                self.players[player].call(max_bet);
                 Ok(())
             }
-            Response::Action(PlayerAction::Raise(new_bet)) => {
-                if new_bet - max_bet < min_betsize
-                    || self.players[player_id].raise(new_bet).is_err()
-                {
+            Ok(Response::Action(PlayerAction::Raise(new_bet))) => {
+                if new_bet - max_bet < min_betsize || self.players[player].raise(new_bet).is_err() {
                     Err(ErrorMessage::BetNotAllowed)
                 } else {
                     Ok(())
                 }
             }
-            _ => Err(ErrorMessage::InvalidResponse),
+            Ok(_) => Err(ErrorMessage::InvalidResponse),
+            Err(e) => Err(e),
         }
     }
 
+    /// Calculate the score of each player, determine the winning hand and the
+    /// winners.
     fn showdown(&self, table_cards: &[Card]) -> (Vec<usize>, Score) {
         let scores = self
             .players
@@ -222,6 +230,7 @@ where
     }
 }
 
+/// Struct to manage the state of a player
 struct Player {
     hole_cards: Option<(Card, Card)>,
     stack: Money,
@@ -241,14 +250,18 @@ impl Player {
         self.hole_cards.is_none()
     }
 
+    /// A player can bet more if their stack is sufficiently big and they
+    /// haven't folded
     fn can_bet(&self, bet: Money) -> bool {
-        self.stack + self.bet >= bet && self.hole_cards.is_some()
+        self.stack + self.bet >= bet && !self.folded()
     }
 
+    /// A player is active if they have chips left to play with
     fn active(&self) -> bool {
-        self.stack > ZERO_MONEY || self.bet > ZERO_MONEY
+        self.stack + self.bet > ZERO_MONEY
     }
 
+    /// Attempt to raise. A player can raise if their stack is sufficiently big.
     fn raise(&mut self, bet: Money) -> Result<(), ()> {
         if bet <= self.stack {
             self.stack -= bet;
@@ -274,6 +287,7 @@ impl Player {
         self.hole_cards = None;
     }
 
+    /// A player yields their bet to the pot at the end of the betting round.
     fn yield_bet(&mut self) -> Money {
         let bet = self.bet;
         self.bet = ZERO_MONEY;
@@ -297,8 +311,10 @@ impl Deck {
         Deck { cards }
     }
 
+    /// Draw a card. Will panic if the deck is empty, which should be
+    /// impossible by the game rules.
     fn draw(&mut self) -> Card {
-        self.cards.pop().unwrap()
+        self.cards.pop().expect("drew a card from an empty deck")
     }
 }
 

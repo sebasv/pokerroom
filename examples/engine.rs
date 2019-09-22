@@ -9,9 +9,7 @@ impl engine::Callback for DumbCallback {
             engine::Message::RequestAction { .. } => {
                 engine::Response::Action(engine::PlayerAction::Call)
             }
-            other => {
-                engine::Response::Ack
-            }
+            other => engine::Response::Ack,
         }
     }
 }
