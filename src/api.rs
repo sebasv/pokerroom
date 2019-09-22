@@ -26,6 +26,7 @@ pub fn run_server(address: &str) {
     thread::spawn(move || {
         for connection in server.filter_map(Result::ok) {
             if let Ok(mut client) = connection.accept() {
+                println!("accepted a connection from {:?}", client.peer_addr());
                 let tx3 = tx2.clone();
                 // fire up separate thread just for requesting the table type
                 // to prevent blocking the server or the dispatcher.
