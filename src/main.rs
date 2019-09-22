@@ -7,7 +7,6 @@ use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
 
 /*  TODO
-* test other rules
 * docs
 **/
 

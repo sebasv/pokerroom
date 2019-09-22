@@ -13,7 +13,7 @@ pub enum GameType {
 /// the callback that is used to communicate the game state from the engine to
 /// the api.
 pub trait Callback {
-    fn callback(&mut self, message: Message) -> Result<Response, ErrorMessage>;
+    fn callback(&mut self, message: Message) -> Result<Response, Error>;
 }
 
 #[derive(
@@ -67,7 +67,14 @@ pub enum Message {
         bets: Vec<Option<Money>>,
         pot: Money,
     },
-    Error(ErrorMessage),
+    /// The offending player's id is passed as well so punishment can be served.
+    Error(Error),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Error {
+    pub player: usize,
+    pub error: ErrorMessage,
 }
 
 /// Everything that can go wrong and should be messaged to the players.

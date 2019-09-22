@@ -4,13 +4,12 @@ use rand::thread_rng;
 
 pub mod score;
 use crate::communication::{
-    Callback, Card, ErrorMessage, GameType, Message, Money, PlayerAction, Response, Suit,
+    Callback, Card, Error, ErrorMessage, GameType, Message, Money, PlayerAction, Response, Suit,
 };
 use score::Score;
 
 /*  TODO
 * test other rules
-* make call and raise relative such that call==raise(0)
 **/
 
 /// chips are discrete, so money should be as well
@@ -75,7 +74,7 @@ where
     }
 
     /// Play a single round.
-    fn play_round(&mut self) -> Result<(), ErrorMessage> {
+    fn play_round(&mut self) -> Result<(), Error> {
         let mut deck = Deck::new();
         let mut pot = ZERO_MONEY;
         let mut table_cards = Vec::new();
@@ -138,7 +137,7 @@ where
 
     /// A single round of poker consists of a series of betting rounds.
     /// These rules depend on the game type.
-    fn betting_round(&mut self, first_player: usize, pot: Money) -> Result<Money, ErrorMessage> {
+    fn betting_round(&mut self, first_player: usize, pot: Money) -> Result<Money, Error> {
         let n = self.players.len();
         let mut current_bet = self.players.iter().map(|p| p.bet).max().unwrap();
         let mut min_betsize = self.big_blind;
@@ -179,7 +178,7 @@ where
         max_bet: Money,
         min_betsize: Money,
         pot: Money,
-    ) -> Result<Money, ErrorMessage> {
+    ) -> Result<Money, Error> {
         match self.callback.callback(Message::RequestAction {
             player,
             bets: self
@@ -199,12 +198,18 @@ where
             }
             Ok(Response::Action(PlayerAction::Raise(raise))) => {
                 if raise < min_betsize || self.players[player].raise(raise).is_err() {
-                    Err(ErrorMessage::BetNotAllowed)
+                    Err(Error {
+                        player,
+                        error: ErrorMessage::BetNotAllowed,
+                    })
                 } else {
                     Ok(raise)
                 }
             }
-            Ok(_) => Err(ErrorMessage::InvalidResponse),
+            Ok(_) => Err(Error {
+                player,
+                error: ErrorMessage::InvalidResponse,
+            }),
             Err(e) => Err(e),
         }
     }

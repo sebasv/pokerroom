@@ -3,16 +3,13 @@ use std::thread;
 use websocket::sync::{Client, Server, Stream};
 use websocket::{Message as WsMessage, OwnedMessage};
 
-use crate::communication::{Callback, ErrorMessage, GameType, Message, Response};
+use crate::communication::{Callback, Error, ErrorMessage, GameType, Message, Response};
 use crate::engine::Table;
 use std::sync::mpsc::{channel, Sender};
 
 /* TODO
-* ERROR HANDLING
-* communicate all relevant updates to players
 * make game-mode selectable
 * make table size selectable
-* deal with lost connections
 * switch to async websockets for speed
 **/
 
@@ -87,42 +84,60 @@ impl<'a, S> Callback for Adapter<'a, S>
 where
     S: Stream + Send + 'static,
 {
-    fn callback(&mut self, message: Message) -> Result<Response, ErrorMessage> {
+    fn callback(&mut self, message: Message) -> Result<Response, Error> {
         match message {
             Message::RequestAction { player, .. } => {
                 self.clients[player]
                     .send_message(&WsMessage::text(serde_json::to_string(&message).unwrap()))
-                    .or(Err(ErrorMessage::WebSocketError))?;
+                    .or(Err(Error {
+                        player,
+                        error: ErrorMessage::WebSocketError,
+                    }))?;
                 self.clients[player]
                     .recv_message()
-                    .or(Err(ErrorMessage::WebSocketError))
+                    .or(Err(Error {
+                        player,
+                        error: ErrorMessage::WebSocketError,
+                    }))
                     .and_then(|m| {
                         if let OwnedMessage::Text(t) = m {
-                            serde_json::from_str::<Response>(&t)
-                                .or(Err(ErrorMessage::InvalidResponse))
+                            serde_json::from_str::<Response>(&t).or(Err(Error {
+                                player,
+                                error: ErrorMessage::InvalidResponse,
+                            }))
                         } else {
-                            Err(ErrorMessage::InvalidResponse)
+                            Err(Error {
+                                player,
+                                error: ErrorMessage::InvalidResponse,
+                            })
                         }
                     })
             }
             Message::Hole { player, .. } => self.clients[player]
                 .send_message(&WsMessage::text(serde_json::to_string(&message).unwrap()))
                 .and(Ok(Response::Ack))
-                .or(Err(ErrorMessage::WebSocketError)),
+                .or(Err(Error {
+                    player,
+                    error: ErrorMessage::WebSocketError,
+                })),
             Message::Flop(..)
             | Message::River(..)
             | Message::Turn(..)
             | Message::GameOver
             | Message::Showdown { .. } => {
-                for client in self.clients.iter_mut() {
+                for (player, client) in self.clients.iter_mut().enumerate() {
                     client
                         .send_message(&WsMessage::text(serde_json::to_string(&message).unwrap()))
-                        .or(Err(ErrorMessage::WebSocketError))?;
+                        .or(Err(Error {
+                            player,
+                            error: ErrorMessage::WebSocketError,
+                        }))?;
                 }
                 Ok(Response::Ack)
             }
-            Message::Error(e) => {
-                println!("{:?}", e);
+            Message::Error(Error { player, error }) => {
+                println!("player {:?} messed up: {:?}", player, error);
+                self.clients.remove(player);
                 // handle error
                 Ok(Response::Ack)
             }
