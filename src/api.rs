@@ -64,7 +64,7 @@ where
         let callback = Adapter {
             clients: &mut clients,
         };
-        let mut table = Table::new(GameType::NoLimit, 1, vec![100; n], callback);
+        let mut table = Table::new(GameType::NoLimit, 1, 2, vec![100; n], callback);
         // table.play_until_end();
         table.play_n_rounds(2);
     }

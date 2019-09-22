@@ -21,7 +21,8 @@ where
     T: Callback,
 {
     game_type: GameType,
-    blind: Money,
+    small_blind: Money,
+    big_blind: Money,
     dealer: usize,
     players: Vec<Player>,
     callback: T,
@@ -33,11 +34,18 @@ impl<T> Table<T>
 where
     T: Callback,
 {
-    pub fn new(game_type: GameType, blind: Money, players: Vec<Money>, callback: T) -> Table<T> {
+    pub fn new(
+        game_type: GameType,
+        small_blind: Money,
+        big_blind: Money,
+        players: Vec<Money>,
+        callback: T,
+    ) -> Table<T> {
         let players = players.iter().map(|stack| Player::new(*stack)).collect();
         Table {
             game_type,
-            blind,
+            small_blind,
+            big_blind,
             dealer: 0,
             players,
             callback,
@@ -74,9 +82,10 @@ where
         let n = self.players.len();
 
         for (i, player) in &mut self.players.iter_mut().enumerate() {
+            // set the small & big blind
             match (i + n - self.dealer) % n {
-                1 if player.active() => player.call(self.blind),
-                2 if player.active() => player.call(self.blind * 2),
+                1 if player.active() => player.call(self.small_blind),
+                2 if player.active() => player.call(self.big_blind),
                 _ => {}
             }
             player.hole_cards = if player.active() {
@@ -131,26 +140,26 @@ where
     /// These rules depend on the game type.
     fn betting_round(&mut self, first_player: usize, pot: Money) -> Result<Money, ErrorMessage> {
         let n = self.players.len();
-        let mut max_bet = self.players.iter().map(|p| p.bet).max().unwrap();
-        let mut min_betsize = self.blind * 2;
+        let mut current_bet = self.players.iter().map(|p| p.bet).max().unwrap();
+        let mut min_betsize = self.big_blind;
         for i in (0..self.players.len()).map(|i| (i + first_player) % n) {
-            if self.players[i].can_bet(max_bet) {
-                self.bet(i, max_bet, min_betsize, pot)?;
-                min_betsize = min_betsize.max(self.players[i].bet - max_bet);
-                max_bet = max_bet.max(self.players[i].bet);
+            if self.players[i].can_bet() {
+                let raise = self.bet(i, current_bet, min_betsize, pot)?;
+                min_betsize = min_betsize.max(raise);
+                current_bet += raise;
             }
         }
 
         // continue until everyone equal, all-in or folded
-        let mut old_max_bet = ZERO_MONEY;
+        let mut previous_bet = ZERO_MONEY;
 
-        while old_max_bet < max_bet {
-            old_max_bet = max_bet;
+        while previous_bet < current_bet {
+            previous_bet = current_bet;
             for i in (0..self.players.len()).map(|i| (i + first_player) % n) {
-                if self.players[i].can_bet(max_bet) {
-                    self.bet(i, max_bet, min_betsize, pot)?;
-                    min_betsize = min_betsize.max(self.players[i].bet - max_bet);
-                    max_bet = max_bet.max(self.players[i].bet);
+                if self.players[i].can_bet() {
+                    let raise = self.bet(i, current_bet, min_betsize, pot)?;
+                    min_betsize = min_betsize.max(raise);
+                    current_bet += raise;
                 }
             }
         }
@@ -170,7 +179,7 @@ where
         max_bet: Money,
         min_betsize: Money,
         pot: Money,
-    ) -> Result<(), ErrorMessage> {
+    ) -> Result<Money, ErrorMessage> {
         match self.callback.callback(Message::RequestAction {
             player,
             bets: self
@@ -182,17 +191,17 @@ where
         }) {
             Ok(Response::Action(PlayerAction::Fold)) => {
                 self.players[player].fold();
-                Ok(())
+                Ok(ZERO_MONEY)
             }
             Ok(Response::Action(PlayerAction::Call)) => {
                 self.players[player].call(max_bet);
-                Ok(())
+                Ok(ZERO_MONEY)
             }
-            Ok(Response::Action(PlayerAction::Raise(new_bet))) => {
-                if new_bet - max_bet < min_betsize || self.players[player].raise(new_bet).is_err() {
+            Ok(Response::Action(PlayerAction::Raise(raise))) => {
+                if raise < min_betsize || self.players[player].raise(raise).is_err() {
                     Err(ErrorMessage::BetNotAllowed)
                 } else {
-                    Ok(())
+                    Ok(raise)
                 }
             }
             Ok(_) => Err(ErrorMessage::InvalidResponse),
@@ -250,10 +259,9 @@ impl Player {
         self.hole_cards.is_none()
     }
 
-    /// A player can bet more if their stack is sufficiently big and they
-    /// haven't folded
-    fn can_bet(&self, bet: Money) -> bool {
-        self.stack + self.bet >= bet && !self.folded()
+    /// A player can bet more if they are not all in and they haven't folded
+    fn can_bet(&self) -> bool {
+        self.stack > ZERO_MONEY && !self.folded()
     }
 
     /// A player is active if they have chips left to play with
@@ -262,10 +270,10 @@ impl Player {
     }
 
     /// Attempt to raise. A player can raise if their stack is sufficiently big.
-    fn raise(&mut self, bet: Money) -> Result<(), ()> {
-        if bet <= self.stack {
-            self.stack -= bet;
-            self.bet += bet;
+    fn raise(&mut self, raise: Money) -> Result<(), ()> {
+        if raise <= self.stack {
+            self.stack -= raise;
+            self.bet += raise;
             Ok(())
         } else {
             Err(())
