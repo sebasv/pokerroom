@@ -30,24 +30,29 @@ fn run_player() {
         .add_protocol("rust-websocket")
         .connect_insecure()
         .unwrap();
+    let mut count = 0;
     while let Ok(msg) = client.recv_message() {
+        count += 1;
+        if count > 1000 {
+            println!("Got a thousand messages, you get the point. Shutting down client");
+            client.send_message(&Message::close()).ok();
+            break;
+        }
         match msg {
             OwnedMessage::Text(t) => {
                 println!("{:?}", t);
 
                 if let Ok(RequestTable::RequestTable) = serde_json::from_str::<RequestTable>(&t) {
-                    client
-                        .send_message(&Message::text(
-                            serde_json::to_string(&RequestTable::Table(TableRequest {
-                                n_players: 1,
-                                small_blind: 1,
-                                big_blind: 2,
-                                stack: 100,
-                                game_type: GameType::NoLimit,
-                            }))
-                            .unwrap(),
-                        ))
-                        .ok();
+                    let serialized = serde_json::to_string(&RequestTable::Table(TableRequest {
+                        n_players: 1,
+                        small_blind: 1,
+                        big_blind: 2,
+                        stack: 100,
+                        game_type: GameType::NoLimit,
+                    }))
+                    .unwrap();
+                    println!("{:?}", serialized);
+                    client.send_message(&Message::text(serialized)).ok();
                 } else if let Ok(PokerMessage::RequestAction { .. }) =
                     serde_json::from_str::<PokerMessage>(&t)
                 {
