@@ -38,7 +38,25 @@ fn run_player() {
         match msg {
             OwnedMessage::Text(t) => {
                 println!("{:?}", t);
-                if let Ok(communication::Message::RequestAction { .. }) =
+
+                if let Ok(communication::RequestTable::RequestTable) =
+                    serde_json::from_str::<communication::RequestTable>(&t)
+                {
+                    client
+                        .send_message(&Message::text(
+                            serde_json::to_string(&communication::RequestTable::Table(
+                                communication::TableRequest {
+                                    n_players: 1,
+                                    small_blind: 1,
+                                    big_blind: 2,
+                                    stack: 100,
+                                    game_type: communication::GameType::NoLimit,
+                                },
+                            ))
+                            .unwrap(),
+                        ))
+                        .ok();
+                } else if let Ok(communication::Message::RequestAction { .. }) =
                     serde_json::from_str::<communication::Message>(&t)
                 {
                     let serialized = serde_json::to_string(&communication::Response::Action(

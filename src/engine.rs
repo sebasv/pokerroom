@@ -11,6 +11,7 @@ use score::Score;
 /*  TODO
 * test other rules
 * implement other game types
+* if your bet == max bet you don't get to raise
 **/
 
 /// chips are discrete, so money should be as well

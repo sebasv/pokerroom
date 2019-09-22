@@ -4,13 +4,13 @@ use serde::{Deserialize, Serialize};
 
 pub type Money = u32;
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum RequestTable {
     RequestTable,
     Table(TableRequest),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub struct TableRequest {
     pub n_players: usize,
     pub small_blind: Money,
