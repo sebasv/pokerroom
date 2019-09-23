@@ -2,6 +2,8 @@ use ::poker::run_server;
 use clap::{App, Arg};
 use std::thread;
 
+// TODO also serve a page that updates the waiting list
+
 fn main() -> Result<(), ()> {
     let matches = App::new("Pokerroom server")
         .version("0.1")

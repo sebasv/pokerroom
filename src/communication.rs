@@ -22,8 +22,9 @@ pub struct TableRequest {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum GameType {
     NoLimit,
-    FixedLimit,
-    PotLimit,
+    // TODO
+    // FixedLimit,
+    // PotLimit,
 }
 
 /// the callback that is used to communicate the game state from the engine to

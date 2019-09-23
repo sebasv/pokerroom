@@ -1,35 +1,34 @@
 use ::poker::{
-    run_server, GameType, Message as PokerMessage, PlayerAction, RequestTable, Response,
-    TableRequest,
+    GameType, Message as PokerMessage, PlayerAction, RequestTable, Response, TableRequest,
 };
 use std::thread;
 use websocket::client::ClientBuilder;
 use websocket::{Message, OwnedMessage};
 
-const CONNECTION: &str = "ws://127.0.0.1:2794";
+const CONNECTION: &str = "ws://ws.sebastiaanvermeulen.nl/pokerroom";
 
-fn main() -> Result<(), ()> {
-    let server = thread::spawn(move || {
-        run_server("127.0.0.1:2794");
-    });
-
+fn main() {
     let n_players = 2;
 
-    for i in 0..n_players {
-        thread::spawn(move || {
-            run_player(i);
-        });
+    let threads = (0..n_players)
+        .map(|i| {
+            thread::spawn(move || {
+                run_player(i);
+            })
+        })
+        .collect::<Vec<_>>();
+
+    for thread in threads {
+        thread.join().expect("child thread panicked");
     }
-    // do not end program
-    server.join().or(Err(()))
 }
 
 fn run_player(player: usize) {
     let mut client = ClientBuilder::new(CONNECTION)
-        .unwrap()
+        .expect("could not build connection")
         .add_protocol("rust-websocket")
         .connect_insecure()
-        .unwrap();
+        .expect("connect failed");
     let mut count = 0;
     while let Ok(msg) = client.recv_message() {
         count += 1;
@@ -61,8 +60,7 @@ fn run_player(player: usize) {
                         56..=100 => PlayerAction::Fold,
                         _ => PlayerAction::Call,
                     };
-                    let serialized =
-                        serde_json::to_string(&Response::Action(action)).unwrap();
+                    let serialized = serde_json::to_string(&Response::Action(action)).unwrap();
                     println!("[Player {}]     <sent> {:?}", player, serialized);
                     let msg = Message::text(serialized);
                     client.send_message(&msg).ok();
