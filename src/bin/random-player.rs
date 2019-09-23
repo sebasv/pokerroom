@@ -29,6 +29,19 @@ fn run_player(player: usize) {
         .add_protocol("rust-websocket")
         .connect_insecure()
         .expect("connect failed");
+
+    // request to join a table
+    let serialized = serde_json::to_string(&RequestTable::Table(TableRequest {
+        n_players: 2,
+        small_blind: 1,
+        big_blind: 2,
+        stack: 40,
+        game_type: GameType::NoLimit,
+    }))
+    .unwrap();
+    println!("[Player {}]     <sent> {:?}", player, serialized);
+    client.send_message(&Message::text(serialized)).ok();
+
     let mut count = 0;
     while let Ok(msg) = client.recv_message() {
         count += 1;
@@ -40,19 +53,7 @@ fn run_player(player: usize) {
         match msg {
             OwnedMessage::Text(t) => {
                 println!("[Player {}] <received> {:?}", player, t);
-
-                if let Ok(RequestTable::RequestTable) = serde_json::from_str::<RequestTable>(&t) {
-                    let serialized = serde_json::to_string(&RequestTable::Table(TableRequest {
-                        n_players: 2,
-                        small_blind: 1,
-                        big_blind: 2,
-                        stack: 40,
-                        game_type: GameType::NoLimit,
-                    }))
-                    .unwrap();
-                    println!("[Player {}]     <sent> {:?}", player, serialized);
-                    client.send_message(&Message::text(serialized)).ok();
-                } else if let Ok(PokerMessage::RequestAction { .. }) =
+                if let Ok(PokerMessage::RequestAction { .. }) =
                     serde_json::from_str::<PokerMessage>(&t)
                 {
                     let action = match rand::random::<u8>() {

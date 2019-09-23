@@ -9,13 +9,14 @@ use websocket::{Message, OwnedMessage};
 const CONNECTION: &str = "ws://ws.sebastiaanvermeulen.nl/pokerroom";
 
 fn main() {
-
     let mut client = ClientBuilder::new(CONNECTION)
         .expect("address parse fail")
         .connect(None)
         .expect("connect failed");
 
-        println!("{:?}", client.recv_message());
+    println!("{:?}", client.recv_message());
 
-        client.send_message(&Message::close()).expect("failed to close connection");
+    client
+        .send_message(&Message::close())
+        .expect("failed to close connection");
 }
