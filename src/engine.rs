@@ -130,15 +130,24 @@ where
 
     /// A single round of poker consists of a series of betting rounds.
     /// These rules depend on the game type.
+    /// Returns: the combined size of all table bets or an error if a
+    /// player made an illegal move
     fn betting_round(&mut self, first_player: usize, pot: Money) -> Result<Money, Error> {
+        let mut can_bet_count = self.players.iter().filter(|p| p.can_bet()).count();
         let n = self.players.len();
         let mut current_bet = self.players.iter().map(|p| p.bet).max().unwrap();
         let mut min_betsize = self.big_blind;
         for i in (0..self.players.len()).map(|i| (i + first_player) % n) {
+            if can_bet_count < 2 {
+                break;
+            }
             if self.players[i].can_bet() {
                 let raise = self.bet(i, current_bet, min_betsize, pot)?;
                 min_betsize = min_betsize.max(raise);
                 current_bet += raise;
+                if !self.players[i].can_bet() {
+                    can_bet_count -= 1;
+                }
             }
         }
 
@@ -148,10 +157,16 @@ where
         while previous_bet < current_bet {
             previous_bet = current_bet;
             for i in (0..self.players.len()).map(|i| (i + first_player) % n) {
+                if can_bet_count < 2 {
+                    break;
+                }
                 if self.players[i].can_bet() && self.players[i].bet != current_bet {
                     let raise = self.bet(i, current_bet, min_betsize, pot)?;
                     min_betsize = min_betsize.max(raise);
                     current_bet += raise;
+                    if !self.players[i].can_bet() {
+                        can_bet_count -= 1;
+                    }
                 }
             }
         }
@@ -190,7 +205,7 @@ where
                 Ok(ZERO_MONEY)
             }
             Ok(Response::Action(PlayerAction::Raise(raise))) => {
-                if raise < min_betsize || self.players[player].raise(raise).is_err() {
+                if raise < min_betsize || self.players[player].raise(max_bet + raise).is_err() {
                     Err(Error {
                         player,
                         error: ErrorMessage::BetNotAllowed,
@@ -269,17 +284,19 @@ impl Player {
     }
 
     /// Attempt to raise. A player can raise if their stack is sufficiently big.
+    /// raise: the amount to which must be raised
     fn raise(&mut self, raise: Money) -> Result<(), ()> {
-        if raise <= self.stack {
-            self.stack -= raise;
-            self.bet += raise;
+        if raise <= self.stack + self.bet {
+            self.stack -= raise - self.bet;
+            self.bet = raise;
             Ok(())
         } else {
             Err(())
         }
     }
 
-    /// if calling on more than you have, you are all in
+    /// if calling on more than you have, you are all in.
+    /// bet: the current bet that must be called.
     fn call(&mut self, bet: Money) {
         if self.stack + self.bet > bet {
             self.stack -= bet - self.bet;
@@ -327,11 +344,6 @@ impl Deck {
 
 /*
 table min=20 big blind, table max= 100x big blind
-
-* create new table
-* join existing table
-* room tracks tables
-* one table consists of a number of deals (until all but 1 are broke)
 
 no-limit:
 minimum raise is last bet
