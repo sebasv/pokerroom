@@ -1,6 +1,10 @@
+body {
+    background-color: #35654d;
+}
+
 #wrapper {
     width: 1200px;
-    height: 400px;
+    /* height: 400px; */
     margin: 0 auto;
     text-align: center;
     background-color: #35654d;
@@ -9,16 +13,22 @@
 #opponents_layer {
     width: 100%;
     height: 33%;
+
+    padding: 10px 0px 0px 0px;
 }
 
 #table_layer {
     width: 100%;
     height: 33%;
+
+    padding: 10px 0px 0px 0px;
 }
 
 #player_layer {
     width: 100%;
     height: 33%;
+
+    padding: 10px 0px 10px 0px;
 }
 
 .player {
@@ -30,12 +40,40 @@
 .card {
     display: inline-block;
 
-    width: 70px;
-    height: 98px;
+    width: 72px;
+    height: 100px;
 
-    border: 1px solid black;
+    /* border: 1px solid black; */
+}
+
+.closed {
+    background: url("../img/playing_cards.gif") -360px -400px;
 }
 
 #one.spades {
-    background: url("../img/playing_cards.gif") -1px -1px;
+    background: url("../img/playing_cards.gif") 0px -300px;
+}
+
+#two.hearts {
+    background: url("../img/playing_cards.gif") -72px 0px;
+}
+
+#three.clubs {
+    background: url("../img/playing_cards.gif") -144px -200px;
+}
+
+#four.diamonds {
+    background: url("../img/playing_cards.gif") -216px -100px;
+}
+
+#five.hearts {
+    background: url("../img/playing_cards.gif") -288px -300px;
+}
+
+#king.spades {
+    background: url("../img/playing_cards.gif") -864px -300px;
+}
+
+#king.hearts {
+    background: url("../img/playing_cards.gif") -864px 0px;
 }
