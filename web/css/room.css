@@ -1,5 +1,8 @@
 body {
     background-color: #35654d;
+
+    color: white;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 #wrapper {
@@ -8,6 +11,37 @@ body {
     margin: 0 auto;
     text-align: center;
     background-color: #35654d;
+}
+
+.cardlayer {
+    width: 100%;
+}
+
+.buttonlayer {
+    width: 100%;
+
+    margin-top: 20px;
+}
+
+.button {
+    display: inline-block;
+
+    width: 100px;
+    margin: 5px 10px auto auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
+
+    text-transform: uppercase;
+
+    background-color: #764243;
+}
+
+.button:hover {
+    cursor: pointer;
+}
+
+.playerstatus {
+    margin-top: 20px;
 }
 
 #opponents_layer {
@@ -21,14 +55,14 @@ body {
     width: 100%;
     height: 33%;
 
-    padding: 10px 0px 0px 0px;
+    padding: 50px 0px 0px 0px;
 }
 
 #player_layer {
     width: 100%;
     height: 33%;
 
-    padding: 10px 0px 10px 0px;
+    padding: 50px 0px 10px 0px;
 }
 
 .player {
