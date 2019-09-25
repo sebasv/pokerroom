@@ -13,35 +13,66 @@ body {
     background-color: #35654d;
 }
 
+table {
+    /* display: inline-block; */
+
+    margin: auto;
+}
+
+table tr td {
+    text-align: left;
+}
+
+.playerstatus {
+    text-align: center;
+}
+
+.playerstatus table {
+    padding-top: 10px;
+}
+
 .cardlayer {
     width: 100%;
 }
 
 .buttonlayer {
-    width: 100%;
+    width: 20%;
 
-    margin-top: 20px;
+    margin: 20px auto 0px auto;
 }
 
 .button {
     display: inline-block;
 
-    width: 100px;
-    margin: 5px 10px auto auto;
+    width: 117px;
+    margin-top: 5px;
     padding-top: 10px;
     padding-bottom: 10px;
 
     text-transform: uppercase;
+    text-align: center;
 
     background-color: #764243;
 }
 
-.button:hover {
-    cursor: pointer;
+.call {
+    float: left;
 }
 
-.playerstatus {
-    margin-top: 20px;
+.fold {
+    width: 100%;
+}
+
+.bet {
+    float: right;
+}
+
+/* .bet:hover {
+    height: 50px;
+} */
+
+.button:hover {
+    cursor: pointer;
 }
 
 #opponents_layer {
@@ -56,6 +87,24 @@ body {
     height: 33%;
 
     padding: 50px 0px 0px 0px;
+}
+
+#table_layer table {
+    margin-top: 20px;
+}
+
+.playmarker {
+    display: inline-block;
+
+    width: 53px;
+    height: 52px;
+
+    margin-top:10px;
+}
+
+.dealer {
+    /* background: url("../img/chips_cover.png") -5px -94px; */
+    background: url("../img/chips_cover.png") -2px -38px;
 }
 
 #player_layer {

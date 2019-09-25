@@ -13,7 +13,17 @@
                         <div class="card closed"></div>
                     </div>
                     <div class="playerstatus">
-                        <span class="chipscount">Chips: 1000</span>
+                        <table>
+                            <tr>
+                                <td>Chips:</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>Status:</td>
+                                <td>Bet 200!</td>
+                            </tr>
+                        </table>
+                        <div class="playmarker dealer"></div>
                     </div>
                 </div>
                 <div class="player" id="two">
@@ -22,7 +32,17 @@
                         <div class="card closed"></div>
                     </div>
                     <div class="playerstatus">
-                        <span class="chipscount">Chips: 1000</span>
+                        <table>
+                            <tr>
+                                <td>Chips:</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>Status:</td>
+                                <td>Call</td>
+                            </tr>
+                        </table>
+                        <div class="playmarker dealer"></div>
                     </div>
                 </div>
                 <div class="player" id="three">
@@ -31,7 +51,17 @@
                         <div class="card closed"></div>
                     </div>
                     <div class="playerstatus">
-                        <span class="chipscount">Chips: 1000</span>
+                        <table>
+                            <tr>
+                                <td>Chips:</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>Status:</td>
+                                <td>Call</td>
+                            </tr>
+                        </table>
+                        <div class="playmarker dealer"></div>
                     </div>
                 </div>
                 <div class="player" id="four">
@@ -40,7 +70,17 @@
                         <div class="card closed"></div>
                     </div>
                     <div class="playerstatus">
-                        <span class="chipscount">Chips: 1000</span>
+                        <table>
+                            <tr>
+                                <td>Chips:</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>Status:</td>
+                                <td>Fold!</td>
+                            </tr>
+                        </table>
+                        <div class="playmarker dealer"></div>
                     </div>
                 </div>
                 <div class="player" id="five">
@@ -49,16 +89,34 @@
                         <div class="card closed"></div>
                     </div>
                     <div class="playerstatus">
-                        <span class="chipscount">Chips: 1000</span>
+                        <table>
+                            <tr>
+                                <td>Chips:</td>
+                                <td>1000</td>
+                            </tr>
+                            <tr>
+                                <td>Status:</td>
+                                <td>Pending...</td>
+                            </tr>
+                        </table>
+                        <div class="playmarker dealer"></div>
                     </div>
                 </div>
             </div>
             <div id="table_layer">
-                <div class="card spades" id="one"></div>
-                <div class="card hearts" id="two"></div>
-                <div class="card clubs" id="three"></div>
-                <div class="card diamonds" id="four"></div>
-                <div class="card hearts" id="five"></div>
+                <div class="card_layer">
+                    <div class="card spades" id="one"></div>
+                    <div class="card hearts" id="two"></div>
+                    <div class="card clubs" id="three"></div>
+                    <div class="card diamonds" id="four"></div>
+                    <div class="card hearts" id="five"></div>
+                </div>
+                <table>
+                    <tr>
+                        <td>Pot size:</td>
+                        <td>300</td>
+                    </tr>
+                </table>
             </div>
             <div id="player_layer">
                 <div class="cardlayer">
@@ -66,13 +124,18 @@
                     <div class="card hearts" id="king"></div>
                 </div>
                 <div class="buttonlayer">
-                    <span class="button">Check</span>
-                    <span class="button">Call</span>
-                    <span class="button">Bet</span>
-                    <span class="button">Fold</span>
+                    <span class="button call">Call</span>
+                    <span class="button bet">Bet</span>
+                    <span class="button fold">Fold</span>
                 </div>
                 <div class="playerstatus">
-                    <span class="chipscount">Chips: 1000</span>
+                    <table>
+                        <tr>
+                            <td>Chips:</td>
+                            <td>1000</td>
+                        </tr>
+                    </table>
+                    <div class="playmarker dealer"></div>
                 </div>
             </div>
         </div>
