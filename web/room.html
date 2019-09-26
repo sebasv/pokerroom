@@ -2,6 +2,7 @@
 <html>
     <head>
         <link rel="stylesheet" type="text/css" href="css/room.css" />
+        <script src="js/jquery-3.4.1.min.js"></script>
         <title>Fancy poker room</title>
     </head>
     <body>
@@ -127,7 +128,16 @@
                     <span class="button call">Call</span>
                     <span class="button bet">Bet</span>
                     <span class="button fold">Fold</span>
-                    <div id="popup">Place bet:</div>
+                    <div id="popup">
+                        <div class="popup-header">Place bet:</div>
+                        <div class="popup-body">
+                            <input type="number" step=5 />
+                        </div>
+                        <div class="popup-footer">
+                            <span id="popup-ok">Ok</span>
+                            <span id="popup-cancel">Cancel</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="playerstatus">
                     <table>

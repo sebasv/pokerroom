@@ -42,6 +42,8 @@ table tr td {
 
     width: 20%;
 
+    margin-top: 20px;
+
     /* margin: 20px auto 0px auto; */
 }
 
@@ -67,12 +69,13 @@ table tr td {
 
 #popup {
     position: absolute;
+    display: none;
 
     left: 110%;
     top: 5px;
 
-    width: 120px;
-    height: 200px;
+    /* width: 120px; */
+    /* height: 200px; */
 
     background-color: #764243;
 
@@ -94,6 +97,22 @@ table tr td {
     border-color: #764243 #764243 transparent transparent;
 
     z-index: 1;
+}
+
+#popup .popup-body {
+    padding-top: 15px;
+}
+
+#popup .popup-footer {
+    padding-top: 15px;
+}
+
+#popup .popup-footer span {
+    display: block;
+    
+    /* width: 45%; */
+    
+    cursor: pointer;
 }
 
 .button:hover {
