@@ -36,9 +36,13 @@ table tr td {
 }
 
 .buttonlayer {
+    position: relative;
+
+    display: inline-block;
+
     width: 20%;
 
-    margin: 20px auto 0px auto;
+    /* margin: 20px auto 0px auto; */
 }
 
 .button {
@@ -55,21 +59,42 @@ table tr td {
     background-color: #764243;
 }
 
-.call {
-    float: left;
-}
-
 .fold {
+    /* display: block; */
+
     width: 100%;
 }
 
-.bet {
-    float: right;
+#popup {
+    position: absolute;
+
+    left: 110%;
+    top: 5px;
+
+    width: 120px;
+    height: 200px;
+
+    background-color: #764243;
+
+    padding: 5px;
+
+    text-transform: uppercase;
 }
 
-/* .bet:hover {
-    height: 50px;
-} */
+#popup::before {
+    position: absolute;
+
+    content: "";
+
+    top: 0%;
+    right: 100%;
+
+    border-width: 7px;
+    border-style: solid;
+    border-color: #764243 #764243 transparent transparent;
+
+    z-index: 1;
+}
 
 .button:hover {
     cursor: pointer;
@@ -112,6 +137,8 @@ table tr td {
     height: 33%;
 
     padding: 50px 0px 10px 0px;
+
+    text-align: center;
 }
 
 .player {
