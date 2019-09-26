@@ -2,7 +2,8 @@ body {
     background-color: #35654d;
 
     color: white;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    /* font-family: Verdana, Geneva, Tahoma, sans-serif; */
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
 }
 
 #wrapper {
@@ -79,7 +80,7 @@ table tr td {
 
     background-color: #764243;
 
-    padding: 5px;
+    padding: 15px;
 
     text-transform: uppercase;
 }
@@ -103,8 +104,8 @@ table tr td {
     padding-top: 15px;
 }
 
-#popup .popup-footer {
-    padding-top: 15px;
+#popup .popup-body input {
+    width: 150px;
 }
 
 #popup .popup-footer span {
@@ -113,6 +114,11 @@ table tr td {
     /* width: 45%; */
     
     cursor: pointer;
+
+    margin-top: 15px;
+    padding: 10px;
+
+    background-color: #5e3536;
 }
 
 .button:hover {
