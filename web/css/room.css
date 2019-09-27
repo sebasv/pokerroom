@@ -1,9 +1,17 @@
+@font-face {
+    font-family: pokerFont;
+    src: url("../res/poker_font.otf");
+}
+
 body {
     background-color: #35654d;
 
     color: white;
     /* font-family: Verdana, Geneva, Tahoma, sans-serif; */
-    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif
+    /* font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif */
+    font-family: pokerFont;
+    font-size: 13pt;
+    /* letter-spacing: 1pt; */
 }
 
 #wrapper {
@@ -39,6 +47,8 @@ table tr td {
 .buttonlayer {
     position: relative;
 
+    /* text-align: left; */
+
     display: inline-block;
 
     width: 20%;
@@ -51,7 +61,7 @@ table tr td {
 .button {
     display: inline-block;
 
-    width: 117px;
+    width: 48.75%;
     margin-top: 5px;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -60,6 +70,14 @@ table tr td {
     text-align: center;
 
     background-color: #764243;
+}
+
+.call {
+    float: left;
+}
+
+.bet {
+    float: right;
 }
 
 .fold {
