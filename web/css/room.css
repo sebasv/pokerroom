@@ -61,7 +61,7 @@ table tr td {
 .button {
     display: inline-block;
 
-    width: 48.75%;
+    width: 48.50%;
     margin-top: 5px;
     padding-top: 10px;
     padding-bottom: 10px;
@@ -73,11 +73,11 @@ table tr td {
 }
 
 .call {
-    float: left;
+    /* float: left; */
 }
 
 .bet {
-    float: right;
+    /* float: right; */
 }
 
 .fold {
@@ -148,6 +148,8 @@ table tr td {
     height: 33%;
 
     padding: 10px 0px 0px 0px;
+
+    white-space: nowrap;
 }
 
 #table_layer {
@@ -175,7 +177,7 @@ table tr td {
     background: url("../img/chips_cover.png") -2px -38px;
 }
 
-#player_layer {
+#player-0 {
     width: 100%;
     height: 33%;
 
@@ -187,7 +189,9 @@ table tr td {
 .player {
     display: inline-block;
 
-    margin: auto 20px;
+    /* margin: auto 20px; */
+
+    width: 20%;
 }
 
 .card {
@@ -197,36 +201,4 @@ table tr td {
     height: 100px;
 
     /* border: 1px solid black; */
-}
-
-.closed {
-    background: url("../img/playing_cards.gif") -360px -400px;
-}
-
-#one.spades {
-    background: url("../img/playing_cards.gif") 0px -300px;
-}
-
-#two.hearts {
-    background: url("../img/playing_cards.gif") -72px 0px;
-}
-
-#three.clubs {
-    background: url("../img/playing_cards.gif") -144px -200px;
-}
-
-#four.diamonds {
-    background: url("../img/playing_cards.gif") -216px -100px;
-}
-
-#five.hearts {
-    background: url("../img/playing_cards.gif") -288px -300px;
-}
-
-#king.spades {
-    background: url("../img/playing_cards.gif") -864px -300px;
-}
-
-#king.hearts {
-    background: url("../img/playing_cards.gif") -864px 0px;
 }
