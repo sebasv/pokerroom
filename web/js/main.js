@@ -3,11 +3,12 @@ $(".bet").click(function() {
 });
 
 $("#popup-ok").click(function() {
-    $("#popup").toggle();
+    let betSize = $("#popup > .popup-body > input").value
+    placeBet(betSize);
 });
 
 $("#popup-cancel").click(function() {
-    $("#popup").toggle();
+    cancelBet();
 });
 
 $(".call").click(function() {
@@ -87,6 +88,21 @@ function showRiver(card) {
         }
         displayCard(card, this);
     });
+}
+
+function placeBet(amount) {
+    // talk to server
+    // ...
+
+    // clean up
+    $("#popup > .popup-body > input").value = "";
+    $("#popup").toggle();
+}
+
+function cancelBet() {
+    // clean up
+    $("#popup > .popup-body > input").value = "";
+    $("#popup").toggle();
 }
 
 
