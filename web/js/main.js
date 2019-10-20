@@ -95,13 +95,14 @@ function placeBet(amount) {
     // ...
 
     // clean up
-    $("#popup > .popup-body > input").value = "";
+    let inputs = $("#popup > .popup-body > input");
+    inputs[0].value = "";
     $("#popup").toggle();
 }
 
 function cancelBet() {
-    // clean up
-    $("#popup > .popup-body > input").value = "";
+    let inputs = $("#popup > .popup-body > input");
+    inputs[0].value = "";
     $("#popup").toggle();
 }
 
