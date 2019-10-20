@@ -1,3 +1,13 @@
+// when page is finished loading
+$(document).ready(function() {
+    let nPlayers = 6;
+    let cards = [new Card("spades", 0), new Card("hearts", 0)];
+    initializeRound(nPlayers, cards);
+});
+
+
+
+
 $(".bet").click(function() {
     $("#popup").toggle();
 });
@@ -104,6 +114,34 @@ function cancelBet() {
     let inputs = $("#popup > .popup-body > input");
     inputs[0].value = "";
     $("#popup").toggle();
+}
+
+function appointDealer(player) {
+    let playmarkers = $("div > .playmarker");
+    
+    playmarkers.removeClass("dealer");
+    
+    let playerMarker = $("#playmarker-" + player);
+    playerMarker.addClass("dealer");
+}
+
+function initializeRound(nPlayers, cards) {
+    // deal cards to other players    
+    let closedCard = new Card("closed", 0);
+    for (let i = 1; i < nPlayers; i++) {
+        dealCards(i, [closedCard, closedCard]);
+        setStatus(i, 0, "");
+    }
+
+    // deal cards to main player
+    dealCards(0, cards);
+    setStatus(0, 0, "");
+
+    // reset pot
+    $("#pot-size").html("0");
+
+    // appoint dealer
+    appointDealer(0);
 }
 
 
