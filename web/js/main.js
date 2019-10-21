@@ -1,6 +1,9 @@
 // when page is finished loading
 $(document).ready(function() {
     let nPlayers = 6;
+    initializeRoom(nPlayers);
+
+
     let cards = [new Card("spades", 0), new Card("hearts", 0)];
     initializeRound(nPlayers, cards);
 });
@@ -125,6 +128,13 @@ function appointDealer(player) {
     playerMarker.addClass("dealer");
 }
 
+function initializeRoom(nPlayers) {
+    for (let i = 1; i < nPlayers; i++) {
+        let playerElement = createPlayerHTML(i);
+        $("#opponents_layer").append(playerElement);
+    }
+}
+
 function initializeRound(nPlayers, cards) {
     // deal cards to other players    
     let closedCard = new Card("closed", 0);
@@ -142,6 +152,44 @@ function initializeRound(nPlayers, cards) {
 
     // appoint dealer
     appointDealer(0);
+}
+
+function createPlayerHTML(player) {
+    let playerElement = $("<div></div>");
+    playerElement.attr("id", "player-" + player);
+    playerElement.addClass("player");
+
+    let cardLayerElement = $("<div></div>");
+    cardLayerElement.addClass("card_layer");
+    cardLayerElement.append("<div class='card'></div>");
+    cardLayerElement.append("<div class='card'></div>");
+    playerElement.append(cardLayerElement);
+
+    let table = $("<table></table>");
+    let row1 = $("<tr></tr>");
+    let td11 = $("<td>Chips:</td>");
+    let td12 = $("<td>0</td>");
+    td12.attr("id", "player-" + player);
+    row1.append(td11);
+    row1.append(td12);
+    let row2 = $("<tr></tr>");
+    let td21 = $("<td>Status:</td>");
+    let td22 = $("<td></td>");
+    td22.attr("id", "player-" + player);
+    row2.append(td21);
+    row2.append(td22);
+    table.append(row1);
+    table.append(row2);
+    let playerStatusElement = $("<div class='playerstatus'></div>");
+    playerStatusElement.append(table);
+    
+    let markerElement = $("<div class='playmarker'></div>");
+    markerElement.attr("id", "playmarker-" + player);
+    playerStatusElement.append(markerElement);
+
+    playerElement.append(playerStatusElement);
+
+    return playerElement;
 }
 
 
