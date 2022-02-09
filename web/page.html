@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf8">
+
+<head>
+    <style>
+        .card {
+            background-image: url("cards.gif");
+            width: 125px;
+            height: 181px;
+            /* background-position: -125px -181px; */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card" id="the-card"></div>
+
+</body>
+
+<script src="jquery-3.4.1.min.js"></script>
+<script>
+
+    $(document).ready(function () {
+        console.log("ready!");
+        $("#the-card").click(
+            function () {
+                var i = Math.round(Math.random() * 4);
+                var j = 2 + Math.round(Math.random() * 13);
+                console.log("clicked! " + i + " " + j);
+                $("#the-card").css("background-position", "top " + (-181 * i) + "px left " + (-125 * (j - 2)) + "px");
+            });
+    });
+
+    setInterval(function () {
+        i = Math.round(Math.random() * 4);
+        j = 2 + Math.round(Math.random() * 13);
+        $(".card").css("background-position", "top " + (-181 * i) + "px left " + (-125 * (j - 2)) + "px");
+    }, 500);
+</script>
+
+</html>
